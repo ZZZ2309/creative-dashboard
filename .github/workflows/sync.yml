@@ -3,10 +3,19 @@ name: 同步 Vika 数据
 # 触发条件：
 #   1) 定时：每 10 分钟自动从 Vika 拉取最新数据并生成 data.json
 #   2) 手动：在 Actions 页面点 "Run workflow" 立即同步
+#
+# 保护机制：若 data.json 当前由「Excel 上传网页」生成（source=upload），
+# 定时同步会自动跳过，以免覆盖手动上传的数据。
+# 想切回 Vika 自动同步时，在 "Run workflow" 勾选 force 即可强制覆盖。
 on:
   schedule:
     - cron: '*/10 * * * *'
   workflow_dispatch:
+    inputs:
+      force:
+        description: '强制从 Vika 覆盖（即使数据来自 Excel 上传）'
+        type: boolean
+        default: false
 
 # 允许工作流向仓库写回（提交 data.json）
 permissions:
@@ -20,18 +29,37 @@ jobs:
       - name: 检出仓库
         uses: actions/checkout@v4
 
+      - name: 检查数据源（保护 Excel 上传的数据）
+        id: check
+        run: |
+          if [ -f data.json ]; then
+            SOURCE=$(node -e "try{console.log((JSON.parse(require('fs').readFileSync('data.json','utf8')).source)||'')}catch(e){console.log('')}")
+          else
+            SOURCE=""
+          fi
+          echo "current_source=$SOURCE"
+          if [ "$SOURCE" = "upload" ] && [ "${{ github.event.inputs.force }}" != "true" ]; then
+            echo "::notice::data.json 由 Excel 上传生成(source=upload)，跳过 Vika 同步以免覆盖。如需改回 Vika，请在 Run workflow 时勾选 force。"
+            echo "skip=true" >> $GITHUB_OUTPUT
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: 设置 Node.js
+        if: steps.check.outputs.skip != 'true'
         uses: actions/setup-node@v4
         with:
           node-version: '20'
 
       - name: 拉取 Vika 并生成 data.json
+        if: steps.check.outputs.skip != 'true'
         env:
           VIKA_TOKEN: ${{ secrets.VIKA_TOKEN }}
           VIKA_DATASHEET_ID: dstgba1BmVH0Pc8s61
         run: node fetch_vika.mjs
 
       - name: 提交更新（仅当有变化）
+        if: steps.check.outputs.skip != 'true'
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"

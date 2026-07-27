@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>创意数据上传 · 拖入 Excel 即更新网站</title>
+<script src="vendor/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+         background: #f4f6fb; color: #1f2733; line-height: 1.6; padding: 24px; }
+  .wrap { max-width: 820px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: #6b7785; font-size: 13px; margin-bottom: 20px; }
+  .card { background: #fff; border: 1px solid #e6eaf0; border-radius: 12px; padding: 18px 20px; margin-bottom: 16px;
+          box-shadow: 0 1px 3px rgba(20,30,50,.04); }
+  .card h2 { font-size: 15px; margin: 0 0 12px; display: flex; align-items: center; gap: 8px; }
+  .badge { background: #eaf2ff; color: #2563eb; font-size: 11px; padding: 2px 8px; border-radius: 999px; font-weight: 600; }
+  label { display: block; font-size: 13px; color: #455065; margin: 10px 0 4px; }
+  input[type=text], input[type=password] { width: 100%; padding: 9px 11px; border: 1px solid #d6dce5; border-radius: 8px;
+            font-size: 13px; outline: none; }
+  input:focus { border-color: #2563eb; }
+  .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .drop { border: 2px dashed #c3cddd; border-radius: 12px; padding: 34px 16px; text-align: center; cursor: pointer;
+          transition: .15s; background: #fbfcfe; }
+  .drop.hover { border-color: #2563eb; background: #f0f6ff; }
+  .drop .big { font-size: 15px; font-weight: 600; }
+  .drop .hint { font-size: 12px; color: #8a94a6; margin-top: 4px; }
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 16px; border: none; border-radius: 8px;
+         font-size: 14px; font-weight: 600; cursor: pointer; }
+  .btn-primary { background: #2563eb; color: #fff; }
+  .btn-primary:disabled { background: #a9c0ef; cursor: not-allowed; }
+  .btn-ghost { background: #eef1f6; color: #344; }
+  .btn-link { background: none; color: #2563eb; padding: 4px 0; font-size: 13px; font-weight: 500; }
+  .actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-top: 14px; }
+  table.map { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.map th, table.map td { border: 1px solid #eef1f6; padding: 7px 9px; text-align: left; }
+  table.map th { background: #f7f9fc; color: #5b6678; font-weight: 600; }
+  table.map select { width: 100%; padding: 5px 7px; border: 1px solid #d6dce5; border-radius: 6px; font-size: 13px; }
+  .preview { max-height: 260px; overflow: auto; border: 1px solid #eef1f6; border-radius: 8px; }
+  .preview table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .preview th, .preview td { border: 1px solid #eef1f6; padding: 5px 8px; white-space: nowrap; }
+  .preview th { background: #f7f9fc; position: sticky; top: 0; }
+  .status { padding: 12px 14px; border-radius: 8px; font-size: 13px; margin-top: 14px; display: none; }
+  .status.ok { background: #e9f9ee; color: #137a3b; border: 1px solid #b7e6c6; display: block; }
+  .status.err { background: #fdecec; color: #b22; border: 1px solid #f3c2c2; display: block; }
+  .status.info { background: #eef4ff; color: #1d4ed8; border: 1px solid #cfe0ff; display: block; }
+  .muted { color: #8a94a6; font-size: 12px; }
+  .req { color: #d33; }
+  .mode { display: flex; gap: 18px; font-size: 13px; margin-top: 6px; align-items: center; }
+  .mode input { margin-right: 6px; }
+  code { background: #f0f2f6; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📊 创意数据上传</h1>
+  <div class="sub">拖入 Excel（.xlsx）文件 → 自动更新仪表盘网站。无需登录、无需安装，浏览器即可操作。</div>
+
+  <!-- 配置 -->
+  <div class="card">
+    <h2>① 连接设置 <span class="badge">只需设置一次</span></h2>
+    <div class="row2">
+      <div>
+        <label>GitHub 用户名</label>
+        <input type="text" id="cfgOwner" placeholder="如 ZZZ2309" value="ZZZ2309">
+      </div>
+      <div>
+        <label>仓库名</label>
+        <input type="text" id="cfgRepo" placeholder="如 creative-dashboard" value="creative-dashboard">
+      </div>
+    </div>
+    <div class="row2" style="margin-top:6px">
+      <div>
+        <label>分支</label>
+        <input type="text" id="cfgBranch" placeholder="main" value="main">
+      </div>
+      <div>
+        <label>GitHub Token <span class="req">*</span> <span class="muted">（需要 contents 写权限）</span></label>
+        <input type="password" id="cfgToken" placeholder="ghp_xxx 或 github_pat_xxx">
+      </div>
+    </div>
+    <div class="muted" style="margin-top:8px">
+      令牌保存在你本机浏览器，不会上传到任何服务器。可在
+      <code>GitHub → Settings → Developer settings → Personal access tokens</code> 生成（勾选 <code>repo</code> 权限）。
+    </div>
+  </div>
+
+  <!-- 上传 -->
+  <div class="card">
+    <h2>② 选择 Excel 文件</h2>
+    <div class="drop" id="drop">
+      <div class="big">📥 点击选择 或 把 Excel 拖到这里</div>
+      <div class="hint">支持 .xlsx / .xls ｜ 每行 = 一个创意在某一天的数据</div>
+      <input type="file" id="file" accept=".xlsx,.xls" style="display:none">
+    </div>
+    <div class="actions">
+      <button class="btn-link" id="tplBtn" type="button">⬇ 下载标准模板（.xlsx）</button>
+      <span class="muted" id="fileName"></span>
+    </div>
+  </div>
+
+  <!-- 字段映射 -->
+  <div class="card" id="mapCard" style="display:none">
+    <h2>③ 确认字段映射</h2>
+    <div class="muted" style="margin-bottom:8px">系统已自动识别列，请核对是否正确（下拉开可手动调整）。带 <span class="req">*</span> 为必填。</div>
+    <table class="map"><thead><tr><th>系统字段</th><th>对应 Excel 列</th></tr></thead>
+      <tbody id="mapBody"></tbody></table>
+  </div>
+
+  <!-- 预览 -->
+  <div class="card" id="prevCard" style="display:none">
+    <h2>④ 数据预览 <span class="badge" id="prevCount">0 行</span></h2>
+    <div class="mode">
+      <label style="margin:0"><input type="radio" name="mode" value="replace" checked> 替换全部（用本次 Excel 覆盖网站数据）</label>
+      <label style="margin:0"><input type="radio" name="mode" value="merge"> 合并（保留网站已有数据，只追加/更新本次行）</label>
+    </div>
+    <div class="preview" style="margin-top:12px"><table id="prevTable"></table></div>
+    <div class="actions">
+      <button class="btn btn-primary" id="uploadBtn" type="button">🚀 生成并上传到网站</button>
+      <span class="muted">上传成功后，网站约 1–2 分钟自动刷新。</span>
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+</div>
+
+<script>
+// ============ 字段定义 ============
+// 每个目标字段的候选列名（用于自动匹配表头）。匹配规则：精确相等 > 前缀 > 包含。
+const FIELD_DEFS = [
+  { key:'productName',  label:'产品 *',        aliases:['产品','商品','品名','product','prod'] },
+  { key:'creativeName', label:'创意名称 *',    aliases:['创意名称','创意','素材','creative'] },
+  { key:'date',         label:'日期 *',        aliases:['日期','date','天'] },
+  { key:'impressions',  label:'展现量 *',      aliases:['展现量','曝光','展示','impression','imp'] },
+  { key:'clicks',       label:'点击量 *',      aliases:['点击量','点击','click'] },
+  { key:'amount',       label:'总成交金额',    aliases:['总成交金额','成交金额','成交额','金额','gmv','amount'] },
+  { key:'orders',       label:'直接成交笔数',  aliases:['直接成交笔数','成交笔数','订单数','订单','orders'] },
+  { key:'cart',         label:'总购物车数',    aliases:['总购物车数','购物车','cart'] },
+  { key:'ctr',          label:'点击率',        aliases:['点击率','ctr'] },
+  { key:'cvr',          label:'点击转化率',    aliases:['点击转化率','转化率','cvr'] },
+  { key:'url',          label:'创意网址',      aliases:['创意网址','网址','图片链接','图片','链接','url'] },
+  { key:'status',       label:'投放状态',      aliases:['投放状态','状态','status'] },
+  { key:'startDate',    label:'投放开始时间',  aliases:['投放开始时间','开始时间','start'] },
+  { key:'endDate',      label:'投放结束时间',  aliases:['投放结束时间','结束时间','end'] },
+];
+const REQUIRED = ['productName','creativeName','date','impressions','clicks'];
+const TEMPLATE_HEADERS = ['产品','创意名称','日期','创意网址','投放状态','投放开始时间','投放结束时间','展现量','点击量','总成交金额','点击率','直接成交笔数','总购物车数','点击转化率'];
+
+// ============ 状态 ============
+let PARSED = null; // { headers, rows }
+
+// ============ 工具 ============
+function toNum(v){
+  const s = String(v==null?'0':v).replace(/,/g,'').trim();
+  if(s===''||s==='-') return 0;
+  const n = Number(s);
+  return isFinite(n)?n:0;
+}
+function score(header, alias){
+  if(header===alias) return 3;
+  if(header.startsWith(alias)) return 2;
+  if(header.includes(alias)) return 1;
+  return 0;
+}
+// 自动匹配：返回 { fieldKey: headerName }，以及未使用的表头列表
+function autoMap(headers){
+  const used = new Set();
+  const map = {};
+  // 对每个 field，找分数最高的 header（且该 header 未被占用）
+  FIELD_DEFS.forEach(def=>{
+    let best=null, bestScore=0;
+    headers.forEach(h=>{
+      if(used.has(h)) return;
+      let s=0; def.aliases.forEach(a=>{ s=Math.max(s, score(h,a)); });
+      if(s>bestScore){ bestScore=s; best=h; }
+    });
+    if(best && bestScore>0){ map[def.key]=best; used.add(best); }
+  });
+  return map;
+}
+
+// ============ 解析 Excel ============
+function handleFile(file){
+  const reader = new FileReader();
+  reader.onload = e=>{
+    try{
+      const wb = XLSX.read(e.target.result, { type:'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const json = XLSX.utils.sheet_to_json(ws, { defval:'' });
+      if(!json.length){ setStatus('err','Excel 没有可读的数据行，请检查内容。'); return; }
+      const headers = Object.keys(json[0]);
+      PARSED = { headers, rows: json };
+      buildMapUI(headers, autoMap(headers));
+      document.getElementById('fileName').textContent = '已读取：' + file.name + '（' + json.length + ' 行）';
+    }catch(err){ setStatus('err','解析失败：' + err.message); }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+// ============ 映射 UI ============
+function buildMapUI(headers, map){
+  const body = document.getElementById('mapBody');
+  body.innerHTML = '';
+  FIELD_DEFS.forEach(def=>{
+    const tr = document.createElement('tr');
+    const td1 = document.createElement('td');
+    td1.textContent = def.label;
+    if(REQUIRED.includes(def.key) && !map[def.key]) td1.innerHTML = def.label + ' <span class="req">未匹配!</span>';
+    const td2 = document.createElement('td');
+    const sel = document.createElement('select');
+    sel.dataset.key = def.key;
+    const optNone = document.createElement('option');
+    optNone.value=''; optNone.textContent='— 不使用 —'; sel.appendChild(optNone);
+    headers.forEach(h=>{
+      const o=document.createElement('option'); o.value=h; o.textContent=h;
+      if(map[def.key]===h) o.selected=true;
+      sel.appendChild(o);
+    });
+    td2.appendChild(sel);
+    tr.appendChild(td1); tr.appendChild(td2);
+    body.appendChild(tr);
+  });
+  document.getElementById('mapCard').style.display='block';
+  document.getElementById('prevCard').style.display='block';
+  renderPreview();
+}
+
+function getMap(){
+  const m={};
+  document.querySelectorAll('#mapBody select').forEach(sel=>{ if(sel.value) m[sel.dataset.key]=sel.value; });
+  return m;
+}
+
+// ============ 预览 ============
+function buildProducts(rows, map){
+  const lookup={}; const products=[]; let cc=0;
+  rows.forEach(r=>{
+    const pn=String(r[map.productName]||'').trim();
+    const cn=String(r[map.creativeName]||'').trim();
+    const dv=String(r[map.date]||'').trim();
+    if(!pn||!cn||!dv) return;
+    const dm=dv.match(/^(\d{4})[/-](\d{1,2})[/-](\d{1,2})/);
+    const date=dm?`${dm[1]}-${String(dm[2]).padStart(2,'0')}-${String(dm[3]).padStart(2,'0')}`:dv;
+    const imp=toNum(r[map.impressions]);
+    const clk=toNum(r[map.clicks]);
+    const amt=toNum(r[map.amount]);
+    const ctrS=String(r[map.ctr]||'').replace('%','').trim();
+    const ctr=ctrS?parseFloat(ctrS):(imp>0?parseFloat((clk/imp*100).toFixed(2)):0);
+    const cvrS=String(r[map.cvr]||'').replace('%','').trim();
+    const cvr=cvrS?parseFloat(cvrS):(clk>0?parseFloat((toNum(r[map.orders])/clk*100).toFixed(2)):0);
+    const url=String(r[map.url]||'').trim();
+    const isImg=url&&/\.(png|jpg|jpeg|gif|webp|svg)(\?|$)/i.test(url);
+    let p=lookup[pn];
+    if(!p){ p={id:'P'+(products.length+1), name:pn, creatives:[]}; products.push(p); lookup[pn]=p; }
+    let c=p.creatives.find(x=>x.name===cn);
+    if(!c){ c={ id:'CR'+String(cc+1).padStart(4,'0'), name:cn, url, img:isImg?url:null,
+               status:String(r[map.status]||'投放中').trim()||'投放中',
+               startDate:String(r[map.startDate]||'').trim()||null,
+               endDate:String(r[map.endDate]||'').trim()||null, dailyData:[] };
+           p.creatives.push(c); cc++; }
+    else { if(url){c.url=url; if(isImg)c.img=url;} if(r[map.status])c.status=String(r[map.status]).trim();
+           if(r[map.startDate])c.startDate=String(r[map.startDate]).trim(); if(r[map.endDate])c.endDate=String(r[map.endDate]).trim(); }
+    const day={date, impressions:imp, clicks:clk, ctr, cvr, orders:toNum(r[map.orders]), cart:toNum(r[map.cart]), amount:amt};
+    const ex=c.dailyData.find(d=>d.date===date);
+    if(ex) Object.assign(ex,day); else c.dailyData.push(day);
+  });
+  return products;
+}
+
+function renderPreview(){
+  if(!PARSED) return;
+  const map=getMap();
+  const miss=REQUIRED.filter(k=>!map[k]);
+  const preview=document.getElementById('prevTable');
+  if(miss.length){ preview.innerHTML='<tr><td style="color:#b22;padding:10px">⚠️ 必填字段未匹配：'+miss.join('、')+'。请在上一步手动选择对应列。</td></tr>';
+    document.getElementById('uploadBtn').disabled=true; return; }
+  document.getElementById('uploadBtn').disabled=false;
+  const products=buildProducts(PARSED.rows, map);
+  const total=PARSED.rows.filter(r=>String(r[map.productName]||'').trim()&&String(r[map.creativeName]||'').trim()&&String(r[map.date]||'').trim()).length;
+  document.getElementById('prevCount').textContent = products.length+' 个产品 / '+total+' 行有效';
+  let html='<thead><tr><th>产品</th><th>创意</th><th>日期</th><th>展现</th><th>点击</th><th>金额</th></tr></thead><tbody>';
+  let cnt=0;
+  products.forEach(p=>p.creatives.forEach(c=>c.dailyData.forEach(d=>{
+    if(cnt<200){ html+=`<tr><td>${esc(p.name)}</td><td>${esc(c.name)}</td><td>${d.date}</td><td>${d.impressions}</td><td>${d.clicks}</td><td>${d.amount}</td></tr>`; cnt++; }
+  })));
+  html+='</tbody>';
+  preview.innerHTML=html;
+}
+function esc(s){ return String(s).replace(/[&<>]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[m])); }
+
+// ============ 上传 ============
+function getCfg(){
+  return { owner:document.getElementById('cfgOwner').value.trim(),
+           repo:document.getElementById('cfgRepo').value.trim(),
+           branch:document.getElementById('cfgBranch').value.trim()||'main',
+           token:document.getElementById('cfgToken').value.trim() };
+}
+function setStatus(type, msg){ const el=document.getElementById('status'); el.className='status '+type; el.innerHTML=msg; }
+
+async function githubGet(path, cfg){
+  const r=await fetch('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/contents/'+path+'?ref='+cfg.branch,
+    { headers:{ 'Authorization':'Bearer '+cfg.token, 'Accept':'application/vnd.github+json' } });
+  if(!r.ok) throw new Error('读取 '+path+' 失败 HTTP '+r.status);
+  return r.json();
+}
+async function githubPut(path, contentB64, sha, message, cfg){
+  const body={ message, content:contentB64, branch:cfg.branch };
+  if(sha) body.sha=sha;
+  const r=await fetch('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/contents/'+path,
+    { method:'PUT', headers:{ 'Authorization':'Bearer '+cfg.token, 'Accept':'application/vnd.github+json', 'Content-Type':'application/json' },
+      body:JSON.stringify(body) });
+  if(!r.ok){ let t=''; try{t=await r.text();}catch(e){} throw new Error('写入 '+path+' 失败 HTTP '+r.status+' '+t.slice(0,200)); }
+  return r.json();
+}
+function toBase64(str){
+  const bytes=new TextEncoder().encode(str); let bin='';
+  for(let i=0;i<bytes.length;i++) bin+=String.fromCharCode(bytes[i]);
+  return btoa(bin);
+}
+
+async function doUpload(){
+  const cfg=getCfg();
+  if(!cfg.owner||!cfg.repo||!cfg.token){ setStatus('err','请先填写 GitHub 用户名、仓库名和 Token。'); return; }
+  const map=getMap(); const miss=REQUIRED.filter(k=>!map[k]);
+  if(miss.length){ setStatus('err','必填字段未匹配：'+miss.join('、')); return; }
+  const mode=document.querySelector('input[name=mode]:checked').value;
+  document.getElementById('uploadBtn').disabled=true;
+  try{
+    setStatus('info','正在解析并生成数据…');
+    const products=buildProducts(PARSED.rows, map);
+    let finalProducts=products;
+    if(mode==='merge'){
+      setStatus('info','合并模式：正在获取网站现有数据…');
+      try{
+        const cur=await githubGet('data.json', cfg);
+        const oldJson=JSON.parse(decodeURIComponent(escape(atob(cur.content.replace(/\s/g,'')))));
+        finalProducts=mergeProducts(oldJson.products||[], products);
+      }catch(e){ setStatus('err','获取现有数据失败（可能 data.json 不存在）：'+e.message); document.getElementById('uploadBtn').disabled=false; return; }
+    }
+    const out={ generatedAt:new Date().toISOString(), source:'upload', totalRecords:PARSED.rows.length, products:finalProducts };
+    const b64=toBase64(JSON.stringify(out));
+    setStatus('info','正在推送到 GitHub（可能需要几秒）…');
+    let sha=null;
+    try{ const cur=await githubGet('data.json', cfg); sha=cur.sha; }catch(e){ /* 文件不存在则创建 */ }
+    await githubPut('data.json', b64, sha, 'upload: update data.json via web', cfg);
+    setStatus('ok','✅ 上传成功！仪表盘网站将在 1–2 分钟内自动刷新。<br>打开：https://'+cfg.owner.toLowerCase()+'.github.io/'+cfg.repo+'/');
+  }catch(e){ setStatus('err','❌ '+e.message); }
+  finally{ document.getElementById('uploadBtn').disabled=false; }
+}
+
+function mergeProducts(existing, incoming){
+  existing=existing||[]; const prodMap={};
+  existing.forEach(p=>prodMap[p.name]=p);
+  incoming.forEach(np=>{
+    let p=prodMap[np.name];
+    if(!p){ p={id:'P'+(existing.length+Object.keys(prodMap).length+1), name:np.name, creatives:[]}; existing.push(p); prodMap[np.name]=p; }
+    const cMap={}; p.creatives.forEach(c=>cMap[c.name]=c);
+    np.creatives.forEach(nc=>{
+      let c=cMap[nc.name];
+      if(!c){ c={id:'CR'+(p.creatives.length+1).padStart(4,'0'), name:nc.name, url:nc.url, img:nc.img, status:nc.status, startDate:nc.startDate, endDate:nc.endDate, dailyData:[]}; p.creatives.push(c); cMap[nc.name]=c; }
+      else { if(nc.url)c.url=nc.url; if(nc.img)c.img=nc.img; if(nc.status)c.status=nc.status; if(nc.startDate)c.startDate=nc.startDate; if(nc.endDate)c.endDate=nc.endDate; }
+      const dMap={}; c.dailyData.forEach(d=>dMap[d.date]=d);
+      nc.dailyData.forEach(nd=>{ if(dMap[nd.date]) Object.assign(dMap[nd.date], nd); else { c.dailyData.push(nd); dMap[nd.date]=nd; } });
+    });
+  });
+  return existing;
+}
+
+// ============ 模板下载 ============
+function downloadTemplate(){
+  const ws=XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ['疤痕凝胶','示例创意001','2026-07-27','https://...png','投放中','2026-07-01','2026-12-30',5000,200,320.5,4,3,12,2]]);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '数据');
+  XLSX.writeFile(wb, '创意数据上传模板.xlsx');
+}
+
+// ============ 事件绑定 ============
+const drop=document.getElementById('drop'), fileInput=document.getElementById('file');
+drop.addEventListener('click',()=>fileInput.click());
+fileInput.addEventListener('change',e=>{ if(e.target.files[0]) handleFile(e.target.files[0]); });
+['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('hover');}));
+['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('hover');}));
+drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) handleFile(f); });
+document.getElementById('tplBtn').addEventListener('click',downloadTemplate);
+document.getElementById('uploadBtn').addEventListener('click',doUpload);
+document.querySelectorAll('#mapBody select').forEach(s=>s.addEventListener('change',renderPreview));
+// 配置变化时刷新预览（不影响映射）
+['cfgOwner','cfgRepo','cfgBranch','cfgToken'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{}));
+// 从 localStorage 恢复 token（仅本机）
+window.addEventListener('DOMContentLoaded',()=>{ const t=localStorage.getItem('cd_token'); if(t) document.getElementById('cfgToken').value=t; });
+document.getElementById('cfgToken').addEventListener('change',e=>{ if(e.target.value) localStorage.setItem('cd_token', e.target.value); });
+</script>
+</body>
+</html>
