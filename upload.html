@@ -128,23 +128,23 @@
 // ============ 字段定义 ============
 // 每个目标字段的候选列名（用于自动匹配表头）。匹配规则：精确相等 > 前缀 > 包含。
 const FIELD_DEFS = [
-  { key:'productName',  label:'产品 *',        aliases:['产品','商品','品名','product','prod'] },
-  { key:'creativeName', label:'创意名称 *',    aliases:['创意名称','创意','素材','creative'] },
-  { key:'date',         label:'日期 *',        aliases:['日期','date','天'] },
-  { key:'impressions',  label:'展现量 *',      aliases:['展现量','曝光','展示','impression','imp'] },
-  { key:'clicks',       label:'点击量 *',      aliases:['点击量','点击','click'] },
-  { key:'amount',       label:'总成交金额',    aliases:['总成交金额','成交金额','成交额','金额','gmv','amount'] },
-  { key:'orders',       label:'直接成交笔数',  aliases:['直接成交笔数','成交笔数','订单数','订单','orders'] },
-  { key:'cart',         label:'总购物车数',    aliases:['总购物车数','购物车','cart'] },
-  { key:'ctr',          label:'点击率',        aliases:['点击率','ctr'] },
-  { key:'cvr',          label:'点击转化率',    aliases:['点击转化率','转化率','cvr'] },
-  { key:'url',          label:'创意网址',      aliases:['创意网址','网址','图片链接','图片','链接','url'] },
-  { key:'status',       label:'投放状态',      aliases:['投放状态','状态','status'] },
-  { key:'startDate',    label:'投放开始时间',  aliases:['投放开始时间','开始时间','start'] },
-  { key:'endDate',      label:'投放结束时间',  aliases:['投放结束时间','结束时间','end'] },
+  { key:'productName',  label:'产品名称 *',     aliases:['产品名称','产品','商品','品名','product','prod'] },
+  { key:'creativeName', label:'素材ID *',       aliases:['素材ID','创意名称','创意','素材','creative'] },
+  { key:'url',          label:'素材ID链接',     aliases:['素材ID链接','创意网址','网址','图片链接','图片','链接','url'] },
+  { key:'status',       label:'投放状态',       aliases:['投放状态','状态','status'] },
+  { key:'startDate',    label:'投放开始时间',   aliases:['投放开始时间','开始时间','start'] },
+  { key:'endDate',      label:'投放结束时间',   aliases:['投放结束时间','结束时间','end'] },
+  { key:'date',         label:'日期 *',         aliases:['日期','date','天'] },
+  { key:'amount',       label:'总成交金额',     aliases:['总成交金额','成交金额','成交额','金额','gmv','amount'] },
+  { key:'impressions',  label:'展现量 *',       aliases:['展现量','曝光','展示','impression','imp'] },
+  { key:'clicks',       label:'点击量 *',       aliases:['点击量','点击','click'] },
+  { key:'ctr',          label:'点击率',         aliases:['点击率','ctr'] },
+  { key:'cvr',          label:'点击转化率',     aliases:['点击转化率','转化率','cvr'] },
+  { key:'orders',       label:'直接成交笔数',   aliases:['直接成交笔数','成交笔数','订单数','订单','orders'] },
+  { key:'cart',         label:'总购物车数',     aliases:['总购物车数','购物车','cart'] },
 ];
 const REQUIRED = ['productName','creativeName','date','impressions','clicks'];
-const TEMPLATE_HEADERS = ['产品','创意名称','日期','创意网址','投放状态','投放开始时间','投放结束时间','展现量','点击量','总成交金额','点击率','直接成交笔数','总购物车数','点击转化率'];
+const TEMPLATE_HEADERS = ['产品名称','素材ID','素材ID链接','投放状态','投放开始时间','投放结束时间','日期','总成交金额','展现量','点击量','点击率','点击转化率','直接成交笔数','总购物车数'];
 
 // ============ 状态 ============
 let PARSED = null; // { headers, rows }
@@ -368,7 +368,7 @@ function mergeProducts(existing, incoming){
 
 // ============ 模板下载 ============
 function downloadTemplate(){
-  const ws=XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ['疤痕凝胶','示例创意001','2026-07-27','https://...png','投放中','2026-07-01','2026-12-30',5000,200,320.5,4,3,12,2]]);
+  const ws=XLSX.utils.aoa_to_sheet([TEMPLATE_HEADERS, ['疤痕凝胶','CR0001','https://...png','投放中','2026-07-01','2026-12-30','2026-07-27',320.5,5000,200,4,2,3,12]]);
   const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, '数据');
   XLSX.writeFile(wb, '创意数据上传模板.xlsx');
 }
