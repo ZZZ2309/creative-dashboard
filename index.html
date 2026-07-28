@@ -1486,8 +1486,6 @@ function renderTable(data) {
       '<td><span class="rate-tag ' + getCvrClass(c.cvr) + '">' + c.cvr + '%</span></td>' +
       '<td><span class="number">' + fmtNum(c.orders) + '</span></td>' +
       '<td><span class="number">' + fmtNum(c.cart) + '</span></td>' +
-      '<td><button class="btn btn-small" onclick="editCreative(\'' + c.productId + '\', \'' + c.id + '\')" style="color:var(--accent);border-color:var(--accent);">编辑</button> ' +
-      '<button class="btn btn-small" onclick="deleteCreative(\'' + c.productId + '\', \'' + c.id + '\', \'' + c.name + '\')" style="color:var(--danger);border-color:var(--danger);">删除</button></td>' +
     '</tr>';
   }).join('');
 
