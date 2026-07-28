@@ -1541,14 +1541,14 @@ function renderCharts(data) {
   if (window._compareChart) window._compareChart.destroy();
   const topData = data.slice(0, 6);
   window._compareChart = new Chart(compareCtx, {
-    type: 'bar', data: { labels: topData.map(c => c.name), datasets: [
-      { label: '展现量', data: topData.map(c => c.impressions), backgroundColor: '#4F46E5', borderRadius: 4 },
-      { label: '点击量', data: topData.map(c => c.clicks), backgroundColor: '#059669', borderRadius: 4 },
-      { label: '点击率', data: topData.map(c => c.ctr), backgroundColor: '#0891B2', borderRadius: 4 },
-      { label: '点击转化率', data: topData.map(c => c.cvr), backgroundColor: '#7C3AED', borderRadius: 4 },
-      { label: '直接成交笔数', data: topData.map(c => c.orders), backgroundColor: '#D97706', borderRadius: 4 },
-      { label: '总购物车数', data: topData.map(c => c.cart), backgroundColor: '#DC2626', borderRadius: 4 },
-      { label: '总成交金额', data: topData.map(c => c.amount), backgroundColor: '#BE185D', borderRadius: 4 }
+    type: 'line', data: { labels: topData.map(c => c.name), datasets: [
+      { label: '展现量', data: topData.map(c => c.impressions), borderColor: '#4F46E5', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3 },
+      { label: '点击量', data: topData.map(c => c.clicks), borderColor: '#059669', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3 },
+      { label: '点击率', data: topData.map(c => c.ctr), borderColor: '#0891B2', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3 },
+      { label: '点击转化率', data: topData.map(c => c.cvr), borderColor: '#7C3AED', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3 },
+      { label: '直接成交笔数', data: topData.map(c => c.orders), borderColor: '#D97706', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3 },
+      { label: '总购物车数', data: topData.map(c => c.cart), borderColor: '#DC2626', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3 },
+      { label: '总成交金额', data: topData.map(c => c.amount), borderColor: '#BE185D', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3 }
     ]},
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } } }, scales: { y: { ticks: { callback: v => v >= 10000 ? (v/10000).toFixed(1)+'万' : v } }, x: { ticks: { maxRotation: 30 } } } }
   });
