@@ -1544,7 +1544,11 @@ function renderCharts(data) {
     type: 'bar', data: { labels: topData.map(c => c.name), datasets: [
       { label: '展现量', data: topData.map(c => c.impressions), backgroundColor: '#4F46E5', borderRadius: 4 },
       { label: '点击量', data: topData.map(c => c.clicks), backgroundColor: '#059669', borderRadius: 4 },
-      { label: '成交笔数', data: topData.map(c => c.orders), backgroundColor: '#D97706', borderRadius: 4 }
+      { label: '点击率', data: topData.map(c => c.ctr), backgroundColor: '#0891B2', borderRadius: 4 },
+      { label: '点击转化率', data: topData.map(c => c.cvr), backgroundColor: '#7C3AED', borderRadius: 4 },
+      { label: '直接成交笔数', data: topData.map(c => c.orders), backgroundColor: '#D97706', borderRadius: 4 },
+      { label: '总购物车数', data: topData.map(c => c.cart), backgroundColor: '#DC2626', borderRadius: 4 },
+      { label: '总成交金额', data: topData.map(c => c.amount), backgroundColor: '#BE185D', borderRadius: 4 }
     ]},
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } } }, scales: { y: { ticks: { callback: v => v >= 10000 ? (v/10000).toFixed(1)+'万' : v } }, x: { ticks: { maxRotation: 30 } } } }
   });
