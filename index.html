@@ -166,7 +166,7 @@ body {
 .summary-card .sub { font-size: 12px; color: var(--text-tertiary); margin-top: 2px; }
 
 .chart-row {
-  display: grid; grid-template-columns: 1fr 1fr;
+  display: grid; grid-template-columns: 1fr;
   gap: 16px; margin-bottom: 16px;
 }
 
@@ -450,10 +450,6 @@ tbody tr:hover { background: var(--bg-secondary); }
 <div class="summary-cards" id="summaryCards"></div>
 
 <div class="chart-row">
-  <div class="chart-card">
-    <h3 id="trendChartTitle">每日趋势</h3>
-    <div class="chart-container"><canvas id="trendChart" role="img" aria-label="每日成交金额与展现量趋势"></canvas></div>
-  </div>
   <div class="chart-card">
     <h3 id="compareChartTitle">创意对比</h3>
     <div class="chart-container"><canvas id="compareChart" role="img" aria-label="各创意关键指标对比"></canvas></div>
