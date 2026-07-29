@@ -1540,6 +1540,14 @@ function renderCharts(data) {
   const compareCtx = document.getElementById('compareChart');
   if (window._compareChart) window._compareChart.destroy();
   const topData = data.slice(0, 6);
+  const _vals = [];
+  topData.forEach(c => ['impressions','clicks','ctr','cvr','orders','cart','amount'].forEach(k => { const v = Number(c[k])||0; if(v>0) _vals.push(v); }));
+  const _rawMax = _vals.length ? Math.max(..._vals) : 10;
+  const _exp = Math.floor(Math.log10(_rawMax));
+  const _base = Math.pow(10, _exp);
+  const _n = (_rawMax*1.1)/_base;
+  const _step = _n<=1?1:_n<=2?2:_n<=2.5?2.5:_n<=5?5:10;
+  const _niceMax = _step*_base;
   window._compareChart = new Chart(compareCtx, {
     type: 'line', data: { labels: topData.map(c => c.name), datasets: [
       { label: '展现量', data: topData.map(c => c.impressions), borderColor: '#4F46E5', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3 },
@@ -1550,7 +1558,7 @@ function renderCharts(data) {
       { label: '总购物车数', data: topData.map(c => c.cart), borderColor: '#DC2626', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3 },
       { label: '总成交金额', data: topData.map(c => c.amount), borderColor: '#BE185D', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3 }
     ]},
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } } }, scales: { y: { max: 1800000, ticks: { callback: v => v >= 10000 ? (v/10000).toFixed(0)+'万' : v } }, x: { ticks: { maxRotation: 30 } } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } } }, scales: { y: { max: _niceMax, ticks: { callback: v => v >= 10000 ? (v/10000).toFixed(0)+'万' : v } }, x: { ticks: { maxRotation: 30 } } } }
   });
 }
 
