@@ -1550,7 +1550,7 @@ function renderCharts(data) {
       { label: '总购物车数', data: topData.map(c => c.cart), borderColor: '#DC2626', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3 },
       { label: '总成交金额', data: topData.map(c => c.amount), borderColor: '#BE185D', backgroundColor: 'transparent', tension: 0.3, pointRadius: 3 }
     ]},
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } } }, scales: { y: { max: 1000000, ticks: { callback: v => v >= 10000 ? (v/10000).toFixed(0)+'万' : v } }, x: { ticks: { maxRotation: 30 } } } }
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: true, position: 'top', labels: { usePointStyle: true, boxWidth: 8, padding: 16 } } }, scales: { y: { max: 1800000, ticks: { callback: v => v >= 10000 ? (v/10000).toFixed(0)+'万' : v } }, x: { ticks: { maxRotation: 30 } } } }
   });
 }
 
