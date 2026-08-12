@@ -413,7 +413,7 @@ function mergeProducts(existing, incoming){
     const cMap={}; p.creatives.forEach(c=>cMap[c.name]=c);
     np.creatives.forEach(nc=>{
       let c=cMap[nc.name];
-      if(!c){ c={id:'CR'+(p.creatives.length+1).padStart(4,'0'), name:nc.name, url:nc.url, img:nc.img, status:nc.status, startDate:nc.startDate, endDate:nc.endDate, dailyData:[]}; p.creatives.push(c); cMap[nc.name]=c; }
+      if(!c){ c={id:'CR'+String(p.creatives.length+1).padStart(4,'0'), name:nc.name, url:nc.url, img:nc.img, status:nc.status, startDate:nc.startDate, endDate:nc.endDate, dailyData:[]}; p.creatives.push(c); cMap[nc.name]=c; }
       else { if(nc.url)c.url=nc.url; if(nc.img)c.img=nc.img; if(nc.status)c.status=nc.status; if(nc.startDate)c.startDate=nc.startDate; if(nc.endDate)c.endDate=nc.endDate; }
       const dMap={}; c.dailyData.forEach(d=>dMap[d.date]=d);
       nc.dailyData.forEach(nd=>{ if(dMap[nd.date]) Object.assign(dMap[nd.date], nd); else { c.dailyData.push(nd); dMap[nd.date]=nd; } });
