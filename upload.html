@@ -278,11 +278,11 @@ function buildProducts(rows, map){
     let c=p.creatives.find(x=>x.name===cn);
     if(!c){ c={ id:'CR'+String(cc+1).padStart(4,'0'), name:cn, url, img:isImg?url:null,
                status:String(r[map.status]||'投放中').trim()||'投放中',
-               startDate:String(r[map.startDate]||'').trim()||null,
-               endDate:String(r[map.endDate]||'').trim()||null, dailyData:[] };
+               startDate:parseDate(r[map.startDate])||null,
+               endDate:parseDate(r[map.endDate])||null, dailyData:[] };
            p.creatives.push(c); cc++; }
     else { if(url){c.url=url; if(isImg)c.img=url;} if(r[map.status])c.status=String(r[map.status]).trim();
-           if(r[map.startDate])c.startDate=String(r[map.startDate]).trim(); if(r[map.endDate])c.endDate=String(r[map.endDate]).trim(); }
+           if(r[map.startDate])c.startDate=parseDate(r[map.startDate]); if(r[map.endDate])c.endDate=parseDate(r[map.endDate]); }
     const day={date, impressions:imp, clicks:clk, ctr, cvr, orders:toNum(r[map.orders]), cart:toNum(r[map.cart]), amount:amt};
     const ex=c.dailyData.find(d=>d.date===date);
     if(ex) Object.assign(ex,day); else c.dailyData.push(day);
@@ -301,10 +301,28 @@ function renderPreview(){
   const products=buildProducts(PARSED.rows, map);
   const total=PARSED.rows.filter(r=>String(r[map.productName]||'').trim()&&String(r[map.creativeName]||'').trim()&&parseDate(r[map.date])).length;
   document.getElementById('prevCount').textContent = products.length+' 个产品 / '+total+' 行有效';
-  let html='<thead><tr><th>产品</th><th>创意</th><th>日期</th><th>展现</th><th>点击</th><th>金额</th></tr></thead><tbody>';
+  let html='<thead><tr><th>产品名称</th><th>素材ID</th><th>素材ID链接</th><th>投放状态</th><th>投放开始时间</th><th>投放结束时间</th><th>日期</th><th>总成交金额</th><th>展现量</th><th>点击量</th><th>点击率</th><th>点击转化率</th><th>直接成交笔数</th><th>总购物车数</th></tr></thead><tbody>';
   let cnt=0;
   products.forEach(p=>p.creatives.forEach(c=>c.dailyData.forEach(d=>{
-    if(cnt<200){ html+=`<tr><td>${esc(p.name)}</td><td>${esc(c.name)}</td><td>${d.date}</td><td>${d.impressions}</td><td>${d.clicks}</td><td>${d.amount}</td></tr>`; cnt++; }
+    if(cnt<200){
+      html+=`<tr>
+        <td>${esc(p.name)}</td>
+        <td>${esc(c.name)}</td>
+        <td>${esc(c.url||'')}</td>
+        <td>${esc(c.status||'')}</td>
+        <td>${esc(c.startDate||'')}</td>
+        <td>${esc(c.endDate||'')}</td>
+        <td>${d.date}</td>
+        <td>${d.amount}</td>
+        <td>${d.impressions}</td>
+        <td>${d.clicks}</td>
+        <td>${d.ctr}</td>
+        <td>${d.cvr}</td>
+        <td>${d.orders}</td>
+        <td>${d.cart}</td>
+      </tr>`;
+      cnt++;
+    }
   })));
   html+='</tbody>';
   preview.innerHTML=html;
