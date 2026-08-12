@@ -98,6 +98,11 @@
       <button class="btn-link" id="tplBtn" type="button">⬇ 下载标准模板（.xlsx）</button>
       <span class="muted" id="fileName"></span>
     </div>
+    <div id="sheetSelectWrap" style="display:none;margin-top:10px">
+      <label class="muted">工作表：</label>
+      <select id="sheetSelect"></select>
+      <span class="muted" style="font-size:12px">（检测到多个工作表，请选择包含每日数据的工作表）</span>
+    </div>
   </div>
 
   <!-- 字段映射 -->
@@ -111,9 +116,10 @@
   <!-- 预览 -->
   <div class="card" id="prevCard" style="display:none">
     <h2>④ 数据预览 <span class="badge" id="prevCount">0 行</span></h2>
+    <div id="prevSummary" class="muted" style="margin-bottom:10px;font-size:13px"></div>
     <div class="mode">
-      <label style="margin:0"><input type="radio" name="mode" value="replace" checked> 替换全部（用本次 Excel 覆盖网站数据）</label>
-      <label style="margin:0"><input type="radio" name="mode" value="merge"> 合并（保留网站已有数据，只追加/更新本次行）</label>
+      <label style="margin:0"><input type="radio" name="mode" value="merge" checked> 合并（保留网站已有数据，只追加/更新本次行）</label>
+      <label style="margin:0"><input type="radio" name="mode" value="replace"> 替换全部（用本次 Excel 覆盖网站数据）</label>
     </div>
     <div class="preview" style="margin-top:12px"><table id="prevTable"></table></div>
     <div class="actions">
@@ -147,7 +153,8 @@ const REQUIRED = ['productName','creativeName','date','impressions','clicks'];
 const TEMPLATE_HEADERS = ['产品名称','素材ID','素材ID链接','投放状态','投放开始时间','投放结束时间','日期','总成交金额','展现量','点击量','点击率','点击转化率','直接成交笔数','总购物车数'];
 
 // ============ 状态 ============
-let PARSED = null; // { headers, rows }
+let PARSED = null; // { headers, rows, wb }
+let CURRENT_FILE = null;
 
 // ============ 工具 ============
 function toNum(v){
@@ -196,6 +203,10 @@ function parsePercent(v){
 
 // 日期解析：兼容 Excel 日期对象、Excel 序列号、ISO 字符串、YYYY/MM/DD 等常见格式
 function formatDate(d){
+  // SheetJS 读出的 Date 对象可能因毫秒精度变成 23:59:59.999，跨到前一天；
+  // 若距下一天午夜不足 1 分钟，则向上取整，确保 Excel 里的日期不被错判。
+  const msInDay = (d.getHours()*3600 + d.getMinutes()*60 + d.getSeconds())*1000 + d.getMilliseconds();
+  if(86400000 - msInDay < 60000) d = new Date(d.getTime() + 60000);
   const y = d.getFullYear();
   const m = String(d.getMonth()+1).padStart(2,'0');
   const day = String(d.getDate()).padStart(2,'0');
@@ -219,17 +230,35 @@ function parseDate(v){
 }
 
 // ============ 解析 Excel ============
+function parseWorkbook(wb, sheetName){
+  const ws = wb.Sheets[sheetName || wb.SheetNames[0]];
+  const json = XLSX.utils.sheet_to_json(ws, { defval:'', cellDates: true });
+  if(!json.length){ setStatus('err','工作表“'+(sheetName||wb.SheetNames[0])+'”没有可读的数据行，请检查内容。'); return null; }
+  const headers = Object.keys(json[0]);
+  PARSED = { headers, rows: json, wb };
+  buildMapUI(headers, autoMap(headers));
+  renderPreview();
+  return json;
+}
 function handleFile(file){
+  CURRENT_FILE = file;
   const reader = new FileReader();
   reader.onload = e=>{
     try{
       const wb = XLSX.read(e.target.result, { type:'array', cellDates: true });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const json = XLSX.utils.sheet_to_json(ws, { defval:'', cellDates: true });
-      if(!json.length){ setStatus('err','Excel 没有可读的数据行，请检查内容。'); return; }
-      const headers = Object.keys(json[0]);
-      PARSED = { headers, rows: json };
-      buildMapUI(headers, autoMap(headers));
+      const sheetSel = document.getElementById('sheetSelect');
+      const sheetWrap = document.getElementById('sheetSelectWrap');
+      sheetSel.innerHTML = '';
+      wb.SheetNames.forEach((name, i)=>{
+        const o = document.createElement('option'); o.value = name; o.textContent = name; if(i===0) o.selected = true; sheetSel.appendChild(o);
+      });
+      if(wb.SheetNames.length > 1){
+        sheetWrap.style.display = 'block';
+      } else {
+        sheetWrap.style.display = 'none';
+      }
+      const json = parseWorkbook(wb, wb.SheetNames[0]);
+      if(!json) return;
       document.getElementById('fileName').textContent = '已读取：' + file.name + '（' + json.length + ' 行）';
     }catch(err){ setStatus('err','解析失败：' + err.message); }
   };
@@ -316,6 +345,13 @@ function renderPreview(){
   const products=buildProducts(PARSED.rows, map);
   const total=PARSED.rows.filter(r=>String(r[map.productName]||'').trim()&&String(r[map.creativeName]||'').trim()&&parseDate(r[map.date])).length;
   document.getElementById('prevCount').textContent = products.length+' 个产品 / '+total+' 行有效';
+  // 汇总：产品数、创意数、日期范围
+  const allDates = new Set();
+  let creativeCount = 0;
+  products.forEach(p=>{ creativeCount += p.creatives.length; p.creatives.forEach(c=>c.dailyData.forEach(d=>allDates.add(d.date))); });
+  const sortedDates = [...allDates].sort();
+  const dateRange = sortedDates.length ? sortedDates[0] + ' ~ ' + sortedDates[sortedDates.length-1] : '无';
+  document.getElementById('prevSummary').textContent = '解析结果：'+products.length+' 个产品、'+creativeCount+' 个创意、'+sortedDates.length+' 个日期（'+dateRange+'）';
   let html='<thead><tr><th>产品名称</th><th>素材ID</th><th>素材ID链接</th><th>投放状态</th><th>投放开始时间</th><th>投放结束时间</th><th>日期</th><th>总成交金额</th><th>展现量</th><th>点击量</th><th>点击率</th><th>点击转化率</th><th>直接成交笔数</th><th>总购物车数</th></tr></thead><tbody>';
   let cnt=0;
   products.forEach(p=>p.creatives.forEach(c=>c.dailyData.forEach(d=>{
@@ -399,7 +435,11 @@ async function doUpload(){
     let sha=null;
     try{ const cur=await githubGet('data.json', cfg); sha=cur.sha; }catch(e){ /* 文件不存在则创建 */ }
     await githubPut('data.json', b64, sha, 'upload: update data.json via web', cfg);
-    setStatus('ok','✅ 上传成功！仪表盘网站将在 1–2 分钟内自动刷新。<br>打开：https://'+cfg.owner.toLowerCase()+'.github.io/'+cfg.repo+'/');
+    const finalDates = new Set(); let finalCreatives = 0;
+    finalProducts.forEach(p=>{ finalCreatives += p.creatives.length; p.creatives.forEach(c=>c.dailyData.forEach(d=>finalDates.add(d.date))); });
+    const sortedFinal = [...finalDates].sort();
+    const finalRange = sortedFinal.length ? sortedFinal[0] + ' ~ ' + sortedFinal[sortedFinal.length-1] : '无';
+    setStatus('ok','✅ 上传成功！最终数据：'+finalProducts.length+' 个产品 / '+finalCreatives+' 个创意 / '+sortedFinal.length+' 个日期（'+finalRange+'）<br>仪表盘网站将在 1–2 分钟内自动刷新。打开：https://'+cfg.owner.toLowerCase()+'.github.io/'+cfg.repo+'/');
   }catch(e){ setStatus('err','❌ '+e.message); }
   finally{ document.getElementById('uploadBtn').disabled=false; }
 }
@@ -436,6 +476,12 @@ fileInput.addEventListener('change',e=>{ if(e.target.files[0]) handleFile(e.targ
 ['dragenter','dragover'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('hover');}));
 ['dragleave','drop'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove('hover');}));
 drop.addEventListener('drop',e=>{ const f=e.dataTransfer.files[0]; if(f) handleFile(f); });
+document.getElementById('sheetSelect').addEventListener('change', e=>{
+  if(PARSED && PARSED.wb){
+    const json = parseWorkbook(PARSED.wb, e.target.value);
+    if(json && CURRENT_FILE) document.getElementById('fileName').textContent = '已读取：' + CURRENT_FILE.name + '（' + json.length + ' 行）';
+  }
+});
 document.getElementById('tplBtn').addEventListener('click',downloadTemplate);
 document.getElementById('uploadBtn').addEventListener('click',doUpload);
 document.querySelectorAll('#mapBody select').forEach(s=>s.addEventListener('change',renderPreview));
