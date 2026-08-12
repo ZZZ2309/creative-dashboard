@@ -329,7 +329,7 @@ async function githubGet(path, cfg){
 async function githubPut(path, contentB64, sha, message, cfg){
   const body={ message, content:contentB64, branch:cfg.branch };
   if(sha) body.sha=sha;
-  const r=await fetch('https://api.github.com/repos/'+cfg.repo+'/contents/'+path,
+  const r=await fetch('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/contents/'+path,
     { method:'PUT', headers:{ 'Authorization':'Bearer '+cfg.token, 'Accept':'application/vnd.github+json', 'Content-Type':'application/json' },
       body:JSON.stringify(body) });
   if(!r.ok){ let t=''; try{t=await r.text();}catch(e){} throw new Error('写入 '+path+' 失败 HTTP '+r.status+' '+t.slice(0,200)); }
