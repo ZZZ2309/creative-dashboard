@@ -179,6 +179,21 @@ function autoMap(headers){
   return map;
 }
 
+// 百分比解析：兼容 Excel 百分比格式（底层小数 0.0404 → 4.04）、带 % 字符串、普通数字
+function parsePercent(v){
+  if(v==null || v==='') return null;
+  if(typeof v==='number'){
+    // Excel 百分比格式存储的是小数，0<=v<=1 时乘以 100
+    if(v >= 0 && v <= 1) return parseFloat((v*100).toFixed(4));
+    return parseFloat(v.toFixed(4));
+  }
+  const s = String(v).replace('%','').trim();
+  if(s==='') return null;
+  const n = parseFloat(s);
+  if(!isFinite(n)) return null;
+  return parseFloat(n.toFixed(4));
+}
+
 // 日期解析：兼容 Excel 日期对象、Excel 序列号、ISO 字符串、YYYY/MM/DD 等常见格式
 function formatDate(d){
   const y = d.getFullYear();
@@ -267,10 +282,10 @@ function buildProducts(rows, map){
     const imp=toNum(r[map.impressions]);
     const clk=toNum(r[map.clicks]);
     const amt=toNum(r[map.amount]);
-    const ctrS=String(r[map.ctr]||'').replace('%','').trim();
-    const ctr=ctrS?parseFloat(ctrS):(imp>0?parseFloat((clk/imp*100).toFixed(2)):0);
-    const cvrS=String(r[map.cvr]||'').replace('%','').trim();
-    const cvr=cvrS?parseFloat(cvrS):(clk>0?parseFloat((toNum(r[map.orders])/clk*100).toFixed(2)):0);
+    const ctrV=parsePercent(r[map.ctr]);
+    const ctr=ctrV!==null?ctrV:(imp>0?parseFloat((clk/imp*100).toFixed(2)):0);
+    const cvrV=parsePercent(r[map.cvr]);
+    const cvr=cvrV!==null?cvrV:(clk>0?parseFloat((toNum(r[map.orders])/clk*100).toFixed(2)):0);
     const url=String(r[map.url]||'').trim();
     const isImg=url&&/\.(png|jpg|jpeg|gif|webp|svg)(\?|$)/i.test(url);
     let p=lookup[pn];
@@ -316,8 +331,8 @@ function renderPreview(){
         <td>${d.amount}</td>
         <td>${d.impressions}</td>
         <td>${d.clicks}</td>
-        <td>${d.ctr}</td>
-        <td>${d.cvr}</td>
+        <td>${d.ctr.toFixed(2)}%</td>
+        <td>${d.cvr.toFixed(2)}%</td>
         <td>${d.orders}</td>
         <td>${d.cart}</td>
       </tr>`;
