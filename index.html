@@ -81,6 +81,17 @@ body {
 
 .product-bar .product-chip { flex-shrink: 0; }
 
+#productChips {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  overflow-x: auto;
+  scrollbar-width: thin;
+}
+
 .product-bar-label {
   font-size: 13px; color: var(--text-secondary); margin-right: 4px;
   white-space: nowrap; font-weight: 500; flex-shrink: 0;
