@@ -126,6 +126,7 @@
     <div class="preview" style="margin-top:12px"><table id="prevTable"></table></div>
     <div class="actions">
       <button class="btn btn-primary" id="uploadBtn" type="button">🚀 生成并上传到网站</button>
+      <button class="btn" id="testBtn" type="button">🔑 测试 Token 是否有效</button>
       <span class="muted">上传成功后，网站约 1–2 分钟自动刷新。</span>
     </div>
     <div class="status" id="status"></div>
@@ -394,7 +395,10 @@ function setStatus(type, msg){ const el=document.getElementById('status'); el.cl
 async function githubGet(path, cfg){
   const r=await fetch('https://api.github.com/repos/'+cfg.owner+'/'+cfg.repo+'/contents/'+path+'?ref='+cfg.branch,
     { headers:{ 'Authorization':'Bearer '+cfg.token, 'Accept':'application/vnd.github+json' } });
-  if(!r.ok) throw new Error('读取 '+path+' 失败 HTTP '+r.status);
+  if(!r.ok){
+    if(r.status===401||r.status===403) throw new Error('GitHub Token 已失效或权限不足（HTTP '+r.status+'）。请打开 https://github.com/settings/tokens 重新生成一个 Token（勾选 repo 权限），粘贴到上方「GitHub Token」输入框后重试。');
+    throw new Error('读取 '+path+' 失败 HTTP '+r.status);
+  }
   return r.json();
 }
 async function githubPut(path, contentB64, sha, message, cfg){
@@ -486,6 +490,18 @@ document.getElementById('sheetSelect').addEventListener('change', e=>{
 });
 document.getElementById('tplBtn').addEventListener('click',downloadTemplate);
 document.getElementById('uploadBtn').addEventListener('click',doUpload);
+document.getElementById('testBtn').addEventListener('click',async ()=>{
+  const cfg=getCfg();
+  if(!cfg.owner||!cfg.repo||!cfg.token){ setStatus('err','请先填写 GitHub 用户名、仓库名和 Token。'); return; }
+  const btn=document.getElementById('testBtn'); btn.disabled=true;
+  setStatus('info','正在测试连接…');
+  try{
+    await githubGet('data.json', cfg);
+    setStatus('ok','✅ Token 有效，可以正常读写 '+cfg.owner+'/'+cfg.repo+'。现在可以点「生成并上传到网站」了。');
+  }catch(e){
+    setStatus('err','❌ '+e.message);
+  }finally{ btn.disabled=false; }
+});
 document.querySelectorAll('#mapBody select').forEach(s=>s.addEventListener('change',renderPreview));
 // 配置变化时刷新预览（不影响映射）
 ['cfgOwner','cfgRepo','cfgBranch','cfgToken'].forEach(id=>document.getElementById(id).addEventListener('input',()=>{}));
